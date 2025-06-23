@@ -163,7 +163,7 @@
                 <div class="contract-info">
                     <h6><i class="fas fa-link"></i> Contratos</h6>
                     <div class="small">
-                        <strong>Chainlink:</strong> 0xa866557B00672D6659bD8AF5d09BbC30B1c2fBBE<br>
+                        <strong>Chainlink:</strong> 0xe9BcC769fd339B30d18aD2c3558C59DF5F8EC2eB<br>
                         <strong>NFT:</strong> 0xDb9Ac4b53e1A325D41Ed527895357614a3b2D03f
                     </div>
                 </div>
@@ -260,8 +260,8 @@
         let analysisData = null;
         let generatedMetadata = null;
 
-        // Contract addresses - ATUALIZADO PARA O CONTRATO CORRETO
-        const CHAINLINK_CONTRACT_ADDRESS = "0xa866557B00672D6659bD8AF5d09BbC30B1c2fBBE";
+        // Contract addresses
+        const CHAINLINK_CONTRACT_ADDRESS = "0xe9BcC769fd339B30d18aD2c3558C59DF5F8EC2eB";
         const NFT_CONTRACT_ADDRESS = "0xDb9Ac4b53e1A325D41Ed527895357614a3b2D03f";
         const SUBSCRIPTION_ID = 15580;
 
@@ -347,9 +347,159 @@
             }
         ];
 
-        // JavaScript source code que será usado pelo contrato
-        // REMOVIDO - O contrato já tem o JavaScript deployado!
-        // Vamos usar o JavaScript que já está no contrato 0xa866557B00672D6659bD8AF5d09BbC30B1c2fBBE
+        // JavaScript source code CORRIGIDO para Chainlink Functions
+        const chainlinkSource = `
+            console.log('=== INICIANDO ANALISE DE SENTIMENTOS NFT ===');
+            const ipfsHash = args[0];
+            console.log('IPFS Hash recebido:', ipfsHash);
+
+            if (!secrets.openaiKey) {
+                console.log('ERRO: OpenAI API key nao encontrada');
+                throw Error('OpenAI API key not found in secrets');
+            }
+
+            try {
+                // 1. Construir URL da imagem IPFS
+                const imageUrl = \`https://gateway.pinata.cloud/ipfs/\${ipfsHash}\`;
+                console.log('URL da imagem:', imageUrl);
+
+                // 2. Prompt especializado para analise de sentimentos de NFTs
+                const prompt = \`Analise esta imagem de NFT e forneca uma analise detalhada de sentimentos e caracteristicas visuais.
+                
+                Retorne APENAS um JSON valido no seguinte formato:
+                {
+                    "sentiment": "positive|negative|neutral",
+                    "confidence": 0.95,
+                    "emotions": ["joy", "excitement", "curiosity"],
+                    "visual_elements": {
+                        "colors": ["vibrant blue", "warm orange"],
+                        "style": "abstract|realistic|cartoon|digital_art",
+                        "composition": "balanced|dynamic|chaotic|minimal"
+                    },
+                    "symbolism": "Brief description of symbolic meaning",
+                    "market_appeal": "high|medium|low",
+                    "keywords": ["futuristic", "energetic", "innovative"],
+                    "nft_attributes": [
+                        {"trait_type": "Mood", "value": "Optimistic"},
+                        {"trait_type": "Energy", "value": "High"},
+                        {"trait_type": "Rarity", "value": "Rare"}
+                    ]
+                }\`;
+
+                // 3. Chamada para OpenAI Vision API
+                const openaiRequest = Functions.makeHttpRequest({
+                    url: 'https://api.openai.com/v1/chat/completions',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': \`Bearer \${secrets.openaiKey}\`,
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        model: 'gpt-4-vision-preview',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: prompt
+                                    },
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: imageUrl,
+                                            detail: 'high'
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: 1000,
+                        temperature: 0.3
+                    }
+                });
+
+                console.log('Enviando requisicao para OpenAI...');
+                const [openaiResponse] = await Promise.all([openaiRequest]);
+
+                console.log('Resposta OpenAI recebida');
+                console.log('Status:', openaiResponse.status);
+
+                if (openaiResponse.error) {
+                    console.log('Erro na API OpenAI:', openaiResponse.error);
+                    throw Error(\`OpenAI API error: \${openaiResponse.error}\`);
+                }
+
+                if (!openaiResponse.data || !openaiResponse.data.choices || !openaiResponse.data.choices[0]) {
+                    console.log('Resposta invalida da OpenAI');
+                    throw Error('Invalid OpenAI response structure');
+                }
+
+                const analysisText = openaiResponse.data.choices[0].message.content;
+                console.log('Analise recebida:', analysisText.substring(0, 200) + '...');
+
+                // 4. Validar e limpar JSON
+                let analysisJson;
+                try {
+                    const cleanText = analysisText.trim();
+                    const jsonStart = cleanText.indexOf('{');
+                    const jsonEnd = cleanText.lastIndexOf('}') + 1;
+                    const jsonString = cleanText.substring(jsonStart, jsonEnd);
+                    
+                    analysisJson = JSON.parse(jsonString);
+                    console.log('JSON parseado com sucesso');
+                } catch (parseError) {
+                    console.log('Erro ao parsear JSON:', parseError.message);
+                    // Fallback com dados basicos
+                    analysisJson = {
+                        sentiment: 'neutral',
+                        confidence: 0.5,
+                        emotions: ['unknown'],
+                        visual_elements: {
+                            colors: ['mixed'],
+                            style: 'digital_art',
+                            composition: 'balanced'
+                        },
+                        symbolism: 'Analysis pending',
+                        market_appeal: 'medium',
+                        keywords: ['nft', 'digital'],
+                        nft_attributes: [
+                            {trait_type: 'Status', value: 'Analyzed'}
+                        ]
+                    };
+                }
+
+                // 5. Adicionar metadados tecnicos
+                const finalResult = {
+                    ...analysisJson,
+                    metadata: {
+                        ipfs_hash: ipfsHash,
+                        analysis_timestamp: Math.floor(Date.now() / 1000),
+                        model_used: 'gpt-4-vision-preview',
+                        chainlink_request: true
+                    }
+                };
+
+                console.log('Analise completa finalizada');
+                const resultString = JSON.stringify(finalResult);
+                console.log('Resultado final (primeiros 300 chars):', resultString.substring(0, 300));
+
+                return Functions.encodeString(resultString);
+
+            } catch (error) {
+                console.log('ERRO na analise:', error.message);
+                
+                // Retornar erro estruturado
+                const errorResult = {
+                    error: true,
+                    message: error.message,
+                    ipfs_hash: ipfsHash,
+                    timestamp: Math.floor(Date.now() / 1000)
+                };
+                
+                return Functions.encodeString(JSON.stringify(errorResult));
+            }
+        `;
 
         // Utility functions
         function log(message) {
@@ -408,8 +558,6 @@
                     nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, nftABI, signer);
                     
                     log('Contratos inicializados com sucesso');
-                    log(`Chainlink Contract: ${CHAINLINK_CONTRACT_ADDRESS}`);
-                    log(`NFT Contract: ${NFT_CONTRACT_ADDRESS}`);
                     return true;
                 } else {
                     throw new Error('MetaMask nao encontrada');
@@ -509,7 +657,7 @@
             throw new Error('Todos os endpoints de upload falharam');
         }
 
-        // Main analysis function - SIMPLIFICADO PARA USAR O JAVASCRIPT DO CONTRATO
+        // Main analysis function
         async function uploadAndAnalyzeImageWithChainlink() {
             if (!currentImageFile) {
                 alert('Selecione uma imagem primeiro');
@@ -538,82 +686,6 @@
                 showLoading('Executando análise via Chainlink Functions...');
                 log('Executando Chainlink Function...');
 
-                // USAR O JAVASCRIPT QUE JÁ ESTÁ NO CONTRATO
-                // O contrato 0xa866557B00672D6659bD8AF5d09BbC30B1c2fBBE já tem o JavaScript deployado
-                const javascriptSource = `
-                    // Este é o JavaScript que está no contrato
-                    require('dotenv-vault').config();
-                    const axios = require("axios");
-                    
-                    const openaiKey = process.env.OPENAI_KEY;
-                    const imageHash = args[0] || 'SEU_HASH_IPFS_EXEMPLO';
-                    
-                    if (!openaiKey) {
-                      throw Error('OPENAI_KEY not found!');
-                    }
-                    
-                    console.log('Analyzing image with hash:', imageHash);
-                    
-                    const prompt = \`Analyze the sentiment and visual characteristics of an NFT image with IPFS hash: \${imageHash}.
-                    Provide a detailed analysis in the following JSON format:
-                    {
-                    "sentiment_analysis": "detailed emotional analysis of the image",
-                    "color_psychology": "analysis of colors and their psychological impact",
-                    "symbol_relation": "symbolic meaning and cultural references",
-                    "visual_language": "description of visual elements and composition",
-                    "keywords": ["keyword1", "keyword2", "keyword3"],
-                    "attributes": [{"trait_type": "Emotion", "value": "Joy"}, {"trait_type": "Style", "value": "Abstract"}]
-                    }
-                    Respond only with valid JSON.\`;
-                    
-                    async function analyzeImage() {
-                      try {
-                        const response = await axios.post(
-                          'https://api.openai.com/v1/chat/completions',
-                          {
-                            model: 'gpt-3.5-turbo',
-                            messages: [
-                              {
-                                role: 'system',
-                                content: 'You are an expert NFT and art analyst. Analyze images and provide detailed sentiment analysis in JSON format.'
-                              },
-                              {
-                                role: 'user',
-                                content: prompt
-                              }
-                            ],
-                            max_tokens: 1000,
-                            temperature: 0.7
-                          },
-                          {
-                            headers: {
-                              'Authorization': \`Bearer \${openaiKey}\`,
-                              'Content-Type': 'application/json'
-                            }
-                          }
-                        );
-                    
-                        if (!response.data || !response.data.choices || !response.data.choices[0]) {
-                          throw Error('Invalid response from OpenAI API');
-                        }
-                        const result = response.data.choices[0].message.content;
-                    
-                        console.log('OpenAI result:', result);
-                        return result;
-                    
-                      } catch (error) {
-                        if (error.response) {
-                          console.error('OpenAI API error:', error.response.data);
-                        } else {
-                          console.error('Error:', error.message);
-                        }
-                        throw error;
-                      }
-                    }
-                    
-                    return analyzeImage();
-                `;
-
                 // Prepare Chainlink Functions request
                 const secretsLocation = 1; // DONHosted
                 const encryptedSecretsReference = "0x"; // Empty for DON hosted secrets
@@ -622,13 +694,12 @@
                 const callbackGasLimit = 300000;
 
                 log(`Chamando sendRequest com IPFS Hash: ${currentIPFSHash}`);
-                log(`Usando contrato: ${CHAINLINK_CONTRACT_ADDRESS}`);
                 log(`Secrets location: ${secretsLocation}`);
                 log(`Callback gas limit: ${callbackGasLimit}`);
 
                 // Send request to Chainlink Functions
                 const tx = await chainlinkContract.sendRequest(
-                    javascriptSource,
+                    chainlinkSource,
                     secretsLocation,
                     encryptedSecretsReference,
                     args,
@@ -682,7 +753,6 @@
                             const responseString = ethers.utils.toUtf8String(response);
                             log(`Resposta recebida: ${responseString.substring(0, 200)}...`);
                             
-                            // Parse the JSON response from OpenAI
                             analysisData = JSON.parse(responseString);
                             
                             log('Análise recebida com sucesso!');
@@ -721,7 +791,7 @@
             }, 5000); // Check every 5 seconds
         }
 
-        // Display analysis results - ADAPTADO PARA O FORMATO DO CONTRATO
+        // Display analysis results
         function displayAnalysisResults(data) {
             const resultsSection = document.getElementById('resultsSection');
             const analysisResults = document.getElementById('analysisResults');
@@ -734,45 +804,42 @@
                     </div>
                 `;
             } else {
-                // Adaptar para o formato retornado pelo contrato
                 analysisResults.innerHTML = `
                     <div class="row">
                         <div class="col-md-6">
                             <div class="analysis-result">
-                                <h6><i class="fas fa-heart"></i> Análise de Sentimentos</h6>
-                                <p>${data.sentiment_analysis || 'Análise não disponível'}</p>
+                                <h6><i class="fas fa-heart"></i> Sentimento</h6>
+                                <p><strong>${data.sentiment}</strong> (${(data.confidence * 100).toFixed(1)}% confiança)</p>
+                                <p><strong>Emoções:</strong> ${data.emotions.join(', ')}</p>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="analysis-result">
-                                <h6><i class="fas fa-palette"></i> Psicologia das Cores</h6>
-                                <p>${data.color_psychology || 'Análise não disponível'}</p>
+                                <h6><i class="fas fa-palette"></i> Elementos Visuais</h6>
+                                <p><strong>Cores:</strong> ${data.visual_elements.colors.join(', ')}</p>
+                                <p><strong>Estilo:</strong> ${data.visual_elements.style}</p>
+                                <p><strong>Composição:</strong> ${data.visual_elements.composition}</p>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="analysis-result">
-                                <h6><i class="fas fa-eye"></i> Linguagem Visual</h6>
-                                <p>${data.visual_language || 'Análise não disponível'}</p>
+                                <h6><i class="fas fa-chart-line"></i> Apelo de Mercado</h6>
+                                <p><strong>${data.market_appeal}</strong></p>
+                                <p><strong>Palavras-chave:</strong> ${data.keywords.join(', ')}</p>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="analysis-result">
-                                <h6><i class="fas fa-gem"></i> Atributos</h6>
-                                ${data.attributes ? data.attributes.map(attr => 
+                                <h6><i class="fas fa-gem"></i> Atributos NFT</h6>
+                                ${data.nft_attributes.map(attr => 
                                     `<span class="badge bg-primary me-1">${attr.trait_type}: ${attr.value}</span>`
-                                ).join('') : 'Atributos não disponíveis'}
+                                ).join('')}
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="analysis-result">
-                                <h6><i class="fas fa-link"></i> Relação Simbólica</h6>
-                                <p>${data.symbol_relation || 'Análise não disponível'}</p>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="analysis-result">
-                                <h6><i class="fas fa-tags"></i> Palavras-chave</h6>
-                                <p>${data.keywords ? data.keywords.join(', ') : 'Palavras-chave não disponíveis'}</p>
+                                <h6><i class="fas fa-eye"></i> Simbolismo</h6>
+                                <p>${data.symbolism}</p>
                             </div>
                         </div>
                     </div>
@@ -782,7 +849,7 @@
             resultsSection.style.display = 'block';
         }
 
-        // Generate metadata - ADAPTADO PARA O FORMATO DO CONTRATO
+        // Generate metadata
         function generateMetadata() {
             if (!analysisData || !currentIPFSHash) {
                 alert('Execute a análise primeiro');
@@ -793,22 +860,39 @@
 
             const metadata = {
                 name: `Sentiment NFT #${Date.now()}`,
-                description: `NFT com análise de sentimentos powered by Chainlink Functions e OpenAI. ${analysisData.sentiment_analysis || 'Análise de sentimentos completa'}`,
+                description: `NFT com análise de sentimentos powered by Chainlink Functions e OpenAI. Sentimento: ${analysisData.sentiment} (${(analysisData.confidence * 100).toFixed(1)}% confiança)`,
                 image: `https://gateway.pinata.cloud/ipfs/${currentIPFSHash}`,
                 external_url: "https://chainlink.com",
-                attributes: analysisData.attributes || [
+                attributes: [
                     {
-                        trait_type: "Status",
-                        value: "Analyzed"
-                    }
+                        trait_type: "Sentiment",
+                        value: analysisData.sentiment
+                    },
+                    {
+                        trait_type: "Confidence",
+                        value: `${(analysisData.confidence * 100).toFixed(1)}%`
+                    },
+                    {
+                        trait_type: "Market Appeal",
+                        value: analysisData.market_appeal
+                    },
+                    {
+                        trait_type: "Style",
+                        value: analysisData.visual_elements.style
+                    },
+                    {
+                        trait_type: "Composition",
+                        value: analysisData.visual_elements.composition
+                    },
+                    ...analysisData.nft_attributes
                 ],
                 sentiment_analysis: {
-                    sentiment_analysis: analysisData.sentiment_analysis,
-                    color_psychology: analysisData.color_psychology,
-                    symbol_relation: analysisData.symbol_relation,
-                    visual_language: analysisData.visual_language,
+                    emotions: analysisData.emotions,
+                    visual_elements: analysisData.visual_elements,
+                    symbolism: analysisData.symbolism,
                     keywords: analysisData.keywords,
-                    analysis_timestamp: Math.floor(Date.now() / 1000)
+                    analysis_timestamp: analysisData.metadata.analysis_timestamp,
+                    model_used: analysisData.metadata.model_used
                 }
             };
 
@@ -851,7 +935,7 @@
             log('Metadados baixados como arquivo JSON');
         }
 
-        // Mint NFT with analysis data - ADAPTADO PARA O FORMATO DO CONTRATO
+        // Mint NFT with analysis data
         async function mintNFTWithAnalysis() {
             if (!analysisData || !generatedMetadata || !nftContract) {
                 alert('Complete a análise e gere os metadados primeiro');
@@ -874,12 +958,12 @@
                 
                 log(`Metadados uploadados: ${metadataURI}`);
 
-                // Prepare data for contract - ADAPTADO PARA O FORMATO DO CONTRATO
-                const sentimentAnalysis = analysisData.sentiment_analysis || 'Análise de sentimentos';
-                const colorPsychology = analysisData.color_psychology || 'Psicologia das cores';
-                const symbolRelation = analysisData.symbol_relation || 'Relação simbólica';
-                const visualLanguage = analysisData.visual_language || 'Linguagem visual';
-                const keywords = analysisData.keywords || ['nft', 'sentiment', 'analysis'];
+                // Prepare data for contract
+                const sentimentAnalysis = `${analysisData.sentiment} (${(analysisData.confidence * 100).toFixed(1)}% confidence)`;
+                const colorPsychology = analysisData.visual_elements.colors.join(', ');
+                const symbolRelation = analysisData.symbolism;
+                const visualLanguage = `${analysisData.visual_elements.style} - ${analysisData.visual_elements.composition}`;
+                const keywords = analysisData.keywords;
 
                 log('Chamando mintWithSentiment...');
 
@@ -924,8 +1008,6 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             log('DOM Content Loaded. Inicializando...');
-            log(`Usando contrato Chainlink: ${CHAINLINK_CONTRACT_ADDRESS}`);
-            log(`Usando contrato NFT: ${NFT_CONTRACT_ADDRESS}`);
             
             setupFileUpload();
             
