@@ -3,353 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criador de Metadados NFT com Análise de Sentimentos - Chainlink Functions</title>
+    <title>NFT Sentiment Analyzer - Chainlink Functions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        :root {
-            --dark-blue: #0f0b2a;
-            --medium-blue: #1a1642;
-            --light-blue: #4e9fff;
-            --purple: #8a56ff;
-            --cyan: #56d6ff;
-            --pink: #ff56d6;
-            --orange: #ff8a56;
-            --yellow: #ffdd56;
-        }
-        
         body {
-            background-color: var(--dark-blue);
-            color: white;
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .container {
-            max-width: 1000px;
-            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            padding: 2rem;
         }
         
-        .card {
+        .header-section {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
             border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            border: none;
-            background-color: var(--medium-blue);
             color: white;
         }
         
-        .btn-primary {
-            background: linear-gradient(45deg, var(--light-blue), var(--purple));
-            border: none;
-            border-radius: 10px;
-            padding: 12px 24px;
-            font-weight: 600;
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
             transition: all 0.3s ease;
+            cursor: pointer;
         }
         
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(78, 159, 255, 0.3);
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e9ecef;
         }
         
-        .btn-secondary {
-            background: linear-gradient(45deg, var(--cyan), var(--pink));
-            border: none;
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
             border-radius: 10px;
-            padding: 12px 24px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            margin: 1rem 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(86, 214, 255, 0.3);
-        }
-        
-        .form-control {
-            background-color: var(--dark-blue);
-            border: 2px solid var(--light-blue);
-            color: white;
-            border-radius: 10px;
-        }
-        
-        .form-control:focus {
-            background-color: var(--dark-blue);
-            border-color: var(--purple);
-            color: white;
-            box-shadow: 0 0 0 0.2rem rgba(138, 86, 255, 0.25);
+        .analysis-result {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 5px solid #007bff;
         }
         
         .loading-spinner {
             display: none;
             text-align: center;
-            color: var(--light-blue);
+            margin: 2rem 0;
         }
         
-        .analysis-section {
-            background: linear-gradient(135deg, var(--medium-blue), var(--dark-blue));
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--light-blue);
-        }
-        
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 0.25rem;
             display: inline-block;
-            margin-right: 8px;
         }
         
-        .status-connected {
-            background-color: #28a745;
-        }
+        .status-connected { background: #d1edff; color: #0969da; }
+        .status-disconnected { background: #ffebe9; color: #cf222e; }
+        .status-processing { background: #fff3cd; color: #856404; }
         
-        .status-disconnected {
-            background-color: #dc3545;
-        }
-        
-        .debug-info {
-            background-color: var(--dark-blue);
-            border: 1px solid var(--light-blue);
+        .debug-section {
+            background: #f1f3f4;
             border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
             max-height: 300px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            display: none;
         }
         
-        .preview-card {
-            background: linear-gradient(135deg, var(--purple), var(--pink));
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 2px solid var(--cyan);
+        .btn-custom {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 2rem;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
         }
         
-        .preview-item {
-            background-color: rgba(255, 255, 255, 0.1);
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .contract-info {
+            background: #e3f2fd;
             border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .preview-item h5 {
-            color: var(--yellow);
-            margin-bottom: 10px;
-        }
-        
-        .gas-config {
-            background-color: var(--dark-blue);
-            border: 2px solid var(--orange);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .gas-config h6 {
-            color: var(--orange);
-            margin-bottom: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid #2196f3;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">
-            <i class="fas fa-robot me-2"></i>
-            Criador de Metadados NFT com Análise de Sentimentos
-            <br><small class="text-muted">Powered by Chainlink Functions & OpenAI</small>
-        </h1>
+        <!-- Header -->
+        <div class="header-section">
+            <h1 class="mb-3">🎨 NFT Sentiment Analyzer</h1>
+            <p class="mb-0">Análise de Sentimentos Powered by Chainlink Functions & OpenAI</p>
+        </div>
 
-        <!-- Status da Carteira e Contrato -->
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-wallet me-2"></i>Status da Conexão</h3>
+        <!-- Status Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="contract-info">
+                    <h6><i class="fas fa-wallet"></i> Status da Carteira</h6>
+                    <span id="walletStatus" class="status-badge status-disconnected">Desconectada</span>
+                    <div id="walletAddress" class="small mt-2"></div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><span class="status-indicator status-disconnected" id="wallet-status-indicator"></span>
-                        <span id="wallet-status-text">Carteira não conectada</span></p>
-                        <button id="connect-wallet-btn" class="btn btn-primary">
-                            <i class="fas fa-link me-2"></i>Conectar Carteira
-                        </button>
-                    </div>
-                    <div class="col-md-6">
-                        <p><span class="status-indicator status-disconnected" id="contract-status-indicator"></span>
-                        <small>Contrato Chainlink: <span id="chainlink-status-display">Não configurado</span></small></p>
+            <div class="col-md-6">
+                <div class="contract-info">
+                    <h6><i class="fas fa-link"></i> Contratos</h6>
+                    <div class="small">
+                        <strong>Chainlink:</strong> 0xe9BcC769fd339B30d18aD2c3558C59DF5F8EC2eB<br>
+                        <strong>NFT:</strong> 0xDb9Ac4b53e1A325D41Ed527895357614a3b2D03f
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Configurações de Contratos e Gas -->
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-cog me-2"></i>Configurações</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="contract-address" class="form-label">Endereço do Contrato NFT:</label>
-                        <input type="text" class="form-control" id="contract-address" value="0xC1B247Ea8DaE4912Bf4216A6E8954aa90C779ABD">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="chainlink-contract-address" class="form-label">Contrato Chainlink Functions:</label>
-                        <input type="text" class="form-control" id="chainlink-contract-address" placeholder="0x..." value="0xe9BcC769fd339B30d18aD2c3558C59DF5F8EC2eB">
-                    </div>
-                </div>
-                
-                <!-- Configurações de Gas -->
-                <div class="gas-config">
-                    <h6><i class="fas fa-fire me-2"></i>Configurações de Gas</h6>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label for="gas-limit" class="form-label">Gas Limit:</label>
-                            <input type="number" class="form-control" id="gas-limit" value="15000000" min="1000000" max="30000000">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="gas-price" class="form-label">Gas Price (Gwei):</label>
-                            <input type="number" class="form-control" id="gas-price" value="25" min="1" max="100">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="subscription-id" class="form-label">Subscription ID:</label>
-                            <input type="number" class="form-control" id="subscription-id" value="15580">
-                        </div>
-                    </div>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Ajuste o Gas Limit se encontrar erros de "execution reverted"
-                    </small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upload de Imagem -->
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-upload me-2"></i>Upload de Imagem</h3>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="image-upload" class="form-label">Selecione uma imagem para análise:</label>
-                    <input type="file" class="form-control" id="image-upload" accept="image/*">
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <button id="upload-btn" class="btn btn-primary btn-lg w-100 mb-2">
-                            <i class="fas fa-brain me-2"></i>
-                            Fazer Upload e Analisar com Chainlink Functions
-                        </button>
-                    </div>
-                    <div class="col-md-6">
-                        <button id="preview-btn" class="btn btn-secondary btn-lg w-100 mb-2" style="display: none;">
-                            <i class="fas fa-eye me-2"></i>
-                            Pré-visualizar Análise (Direto Backend)
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Loading Spinner -->
-                <div id="loading-spinner" class="loading-spinner mt-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                    <p class="mt-2" id="loading-text">Processando...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Imagem Carregada -->
-        <div class="card" id="image-preview" style="display: none;">
-            <div class="card-header">
-                <h3><i class="fas fa-image me-2"></i>Imagem Carregada</h3>
-            </div>
-            <div class="card-body text-center">
-                <img id="uploaded-image" class="img-fluid" alt="Imagem carregada" style="max-height: 400px; border-radius: 10px;">
-                <p class="mt-2">
-                    <small class="text-muted">
-                        IPFS Hash: <span id="ipfs-hash"></span>
-                    </small>
-                </p>
-            </div>
-        </div>
-
-        <!-- Pré-visualização da Análise -->
-        <div id="analysis-preview" style="display: none;">
-            <div class="preview-card">
-                <h3 class="text-center mb-4">
-                    <i class="fas fa-search me-2"></i>Pré-visualização da Análise de Sentimentos
-                </h3>
-                <div id="preview-content">
-                    <!-- Conteúdo será preenchido dinamicamente -->
-                </div>
-                <div class="text-center mt-4">
-                    <button id="confirm-analysis-btn" class="btn btn-primary btn-lg">
-                        <i class="fas fa-check me-2"></i>
-                        Confirmar e Executar via Chainlink Functions
+        <!-- Upload Section -->
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                    <h5>Arraste uma imagem aqui ou clique para selecionar</h5>
+                    <p class="text-muted">Formatos suportados: JPG, PNG, GIF (máx. 10MB)</p>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    <button class="btn btn-custom mt-2" onclick="document.getElementById('imageInput').click()">
+                        Selecionar Imagem
                     </button>
                 </div>
+                
+                <div id="imagePreview" class="text-center"></div>
+                <div id="ipfsInfo" class="text-center mt-2"></div>
             </div>
         </div>
 
-        <!-- Resultados da Análise -->
-        <div id="analysis-results" style="display: none;">
-            <div class="analysis-section">
-                <h3 class="text-center mb-4">
-                    <i class="fas fa-chart-line me-2"></i>Resultados da Análise de Sentimentos
-                </h3>
-                <div id="sentiment-result"></div>
-                <div id="color-result"></div>
-                <div id="symbol-result"></div>
-                <div id="visual-result"></div>
-                <div id="keywords-result"></div>
-                <div id="attributes-result"></div>
-            </div>
-        </div>
-
-        <!-- Criação de Metadados -->
-        <div class="card" id="metadata-section" style="display: none;">
-            <div class="card-header">
-                <h3><i class="fas fa-magic me-2"></i>Criação de Metadados e NFT</h3>
-            </div>
-            <div class="card-body">
-                <button id="create-metadata-btn" class="btn btn-primary btn-lg w-100">
-                    <i class="fas fa-magic me-2"></i>
-                    Criar Metadados e Mintar NFT
-                </button>
-            </div>
-        </div>
-
-        <!-- Informações de Depuração -->
-        <div class="mt-3">
-            <button id="toggle-debug" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-bug me-2"></i>Mostrar/Ocultar Informações de Depuração
+        <!-- Action Button -->
+        <div class="text-center my-4">
+            <button id="analyzeBtn" class="btn btn-custom btn-lg" onclick="uploadAndAnalyzeImageWithChainlink()" disabled>
+                <i class="fas fa-brain"></i> Iniciar Análise de Sentimentos
             </button>
-            <div id="debug-info" class="debug-info"></div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <div id="loadingText" class="mt-3 h5">Processando...</div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <h4 class="text-center mb-4">📊 Resultados da Análise</h4>
+            <div id="analysisResults"></div>
+        </div>
+
+        <!-- Debug Section -->
+        <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6><i class="fas fa-bug"></i> Debug Logs</h6>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleDebug()">Toggle</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearDebugLogs()">Limpar</button>
+                </div>
+            </div>
+            <div id="debugSection" class="debug-section" style="display: none;">
+                <div id="debugLogs">Sistema inicializado...</div>
+            </div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+
     <script>
-        // ABI do contrato Chainlink Functions (interface simplificada)
-        const CHAINLINK_FUNCTIONS_ABI = [
+        // Global variables
+        let provider;
+        let signer;
+        let chainlinkContract;
+        let nftContract;
+        let currentIPFSHash = null;
+        let currentImageFile = null;
+        let analysisRequestId = null;
+
+        // Contract addresses
+        const CHAINLINK_CONTRACT_ADDRESS = "0xe9BcC769fd339B30d18aD2c3558C59DF5F8EC2eB";
+        const NFT_CONTRACT_ADDRESS = "0xDb9Ac4b53e1A325D41Ed527895357614a3b2D03f";
+        const SUBSCRIPTION_ID = 15580;
+
+        // ABI correto para o contrato FunctionsConsumer (Hardhat)
+        const chainlinkABI = [
             {
                 "inputs": [
+                    {"internalType": "string", "name": "source", "type": "string"},
+                    {"internalType": "uint8", "name": "secretsLocation", "type": "uint8"},
+                    {"internalType": "bytes", "name": "encryptedSecretsReference", "type": "bytes"},
+                    {"internalType": "string[]", "name": "args", "type": "string[]"},
+                    {"internalType": "bytes[]", "name": "bytesArgs", "type": "bytes[]"},
                     {"internalType": "uint64", "name": "subscriptionId", "type": "uint64"},
-                    {"internalType": "string[]", "name": "args", "type": "string[]"}
+                    {"internalType": "uint32", "name": "callbackGasLimit", "type": "uint32"}
                 ],
                 "name": "sendRequest",
-                "outputs": [{"internalType": "bytes32", "name": "requestId", "type": "bytes32"}],
+                "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
             },
@@ -376,572 +262,557 @@
             }
         ];
 
-        // Variáveis globais
-        let currentProvider = null;
-        let currentSigner = null;
-        let chainlinkContract = null;
-        let currentImageHash = null;
-        //20250617 - linha abaixo comentada para evitar erro de variável não definida - duplicada
-        //let previewAnalysis = null;
-        
-        // Função para logar mensagens de depuração
-        function logDebugMessage(message) {
-            const debugInfo = document.getElementById('debug-info');
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
-            debugInfo.scrollTop = debugInfo.scrollHeight;
-            console.log(`[${timestamp}] ${message}`);
-        }
-
-        // Verificar conexão da carteira
-        async function checkWalletConnection() {
-            logDebugMessage("Checking wallet connection...");
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0) {
-                        updateWalletStatus(true, accounts[0]);
-                        logDebugMessage(`Wallet connected: ${accounts[0]}`);
-                        await initializeProvider();
-                    } else {
-                        logDebugMessage("Wallet not connected (no accounts found).");
-                        updateWalletStatus(false);
+        // ABI simplificado para o contrato NFT
+        const nftABI = [
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "to", "type": "address"},
+                    {"internalType": "string", "name": "uri", "type": "string"},
+                    {"internalType": "string", "name": "ipfsImageHash", "type": "string"},
+                    {"internalType": "string", "name": "sentimentAnalysis", "type": "string"},
+                    {"internalType": "string", "name": "colorPsychology", "type": "string"},
+                    {"internalType": "string", "name": "symbolRelation", "type": "string"},
+                    {"internalType": "string", "name": "visualLanguage", "type": "string"},
+                    {"internalType": "string[]", "name": "keywords", "type": "string[]"}
+                ],
+                "name": "mintWithSentiment",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+                "name": "getSentimentData",
+                "outputs": [
+                    {
+                        "components": [
+                            {"internalType": "string", "name": "sentimentAnalysis", "type": "string"},
+                            {"internalType": "string", "name": "colorPsychology", "type": "string"},
+                            {"internalType": "string", "name": "symbolRelation", "type": "string"},
+                            {"internalType": "string", "name": "visualLanguage", "type": "string"},
+                            {"internalType": "string[]", "name": "keywords", "type": "string[]"},
+                            {"internalType": "string", "name": "ipfsImageHash", "type": "string"},
+                            {"internalType": "uint256", "name": "timestamp", "type": "uint256"}
+                        ],
+                        "internalType": "struct SentimentNFT.SentimentData",
+                        "name": "",
+                        "type": "tuple"
                     }
-                } catch (error) {
-                    logDebugMessage(`Error checking wallet: ${error.message}`);
-                    console.error('Erro ao verificar carteira:', error);
-                    updateWalletStatus(false);
-                }
-            } else {
-                logDebugMessage("MetaMask (window.ethereum) not detected.");
-                updateWalletStatus(false);
+                ],
+                "stateMutability": "view",
+                "type": "function"
             }
-        }
+        ];
 
-        // Conectar carteira
-        async function connectWallet() {
-            logDebugMessage("Attempting to connect wallet...");
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    if (accounts.length > 0) {
-                        updateWalletStatus(true, accounts[0]);
-                        logDebugMessage(`Wallet connected successfully: ${accounts[0]}`);
-                        await initializeProvider();
-                    }
-                } catch (error) {
-                    logDebugMessage(`Error connecting wallet: ${error.message}`);
-                    console.error('Erro ao conectar carteira:', error);
-                }
-            } else {
-                logDebugMessage("MetaMask not detected. Please install MetaMask.");
-                alert('MetaMask não detectado. Por favor, instale a extensão MetaMask para usar este dApp.');
+        // JavaScript source code para Chainlink Functions
+        const chainlinkSource = `
+            console.log('=== INICIANDO ANALISE DE SENTIMENTOS NFT ===');
+            const ipfsHash = args[0];
+            console.log('IPFS Hash recebido:', ipfsHash);
+
+            if (!secrets.OPENAI_KEY) {
+                console.log('ERRO: OpenAI API key nao encontrada');
+                throw Error('OpenAI API key not found in secrets');
             }
-        }
 
-        // Inicializar provider e contrato Chainlink Functions
-        async function initializeProvider() {
-            logDebugMessage("Initializing provider and Chainlink contract...");
             try {
-                if (typeof window.ethereum === 'undefined') {
-                    logDebugMessage("window.ethereum is undefined. Cannot initialize provider.");
-                    return;
-                }
+                // 1. Construir URL da imagem IPFS
+                const imageUrl = \`https://gateway.pinata.cloud/ipfs/\${ipfsHash}\`;
+                console.log('URL da imagem:', imageUrl);
 
-                if (typeof ethers === 'undefined') {
-                    logDebugMessage("ethers library is not loaded. Cannot initialize provider.");
-                    return;
-                }
+                // 2. Prompt especializado para analise de sentimentos de NFTs
+                const prompt = \`Analise esta imagem de NFT e forneca uma analise detalhada de sentimentos e caracteristicas visuais.
+                
+                Retorne APENAS um JSON valido no seguinte formato:
+                {
+                    "sentiment": "positive|negative|neutral",
+                    "confidence": 0.95,
+                    "emotions": ["joy", "excitement", "curiosity"],
+                    "visual_elements": {
+                        "colors": ["vibrant blue", "warm orange"],
+                        "style": "abstract|realistic|cartoon|digital_art",
+                        "composition": "balanced|dynamic|chaotic|minimal"
+                    },
+                    "symbolism": "Brief description of symbolic meaning",
+                    "market_appeal": "high|medium|low",
+                    "keywords": ["futuristic", "energetic", "innovative"],
+                    "nft_attributes": [
+                        {"trait_type": "Mood", "value": "Optimistic"},
+                        {"trait_type": "Energy", "value": "High"},
+                        {"trait_type": "Rarity", "value": "Rare"}
+                    ]
+                }\`;
 
-                currentProvider = new ethers.providers.Web3Provider(window.ethereum);
-                currentSigner = currentProvider.getSigner();
-                logDebugMessage("Provider and signer initialized successfully.");
-
-                const chainlinkContractAddressInput = document.getElementById('chainlink-contract-address');
-                const contractAddress = chainlinkContractAddressInput.value;
-
-                if (contractAddress && contractAddress.length === 42 && contractAddress.startsWith('0x')) {
-                    chainlinkContract = new ethers.Contract(contractAddress, CHAINLINK_FUNCTIONS_ABI, currentSigner);
-                    logDebugMessage(`Chainlink Contract initialized with address: ${contractAddress}`);
-                    
-                    // Atualizar status do contrato
-                    document.getElementById('chainlink-status-display').textContent = `${contractAddress.substring(0, 6)}...${contractAddress.substring(contractAddress.length - 4)}`;
-                    document.getElementById('contract-status-indicator').className = 'status-indicator status-connected';
-                    
-                    // Configurar listener para eventos
-                    setupEventListener();
-                } else {
-                    logDebugMessage(`Invalid Chainlink Contract Address: ${contractAddress}`);
-                    document.getElementById('chainlink-status-display').textContent = 'Endereço inválido';
-                    document.getElementById('contract-status-indicator').className = 'status-indicator status-disconnected';
-                }
-            } catch (error) {
-                logDebugMessage(`Error initializing provider or contract: ${error.message}`);
-                console.error('Erro ao inicializar provider:', error);
-            }
-        }
-
-        // Configurar listener para eventos do contrato
-        function setupEventListener() {
-            if (chainlinkContract) {
-                logDebugMessage("Setting up contract event listener...");
-                chainlinkContract.on("Response", (requestId, sentimentAnalysis, colorPsychology, symbolRelation, visualLanguage, keywords, attributes, response, err) => {
-                    logDebugMessage(`Response event received for request: ${requestId}`);
-                    hideLoading();
-                    displayAnalysisResults(sentimentAnalysis, colorPsychology, symbolRelation, visualLanguage, keywords, attributes);
-                    document.getElementById('metadata-section').style.display = 'block';
+                // 3. Chamada para OpenAI Vision API
+                const openaiRequest = Functions.makeHttpRequest({
+                    url: 'https://api.openai.com/v1/chat/completions',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': \`Bearer \${secrets.OPENAI_KEY}\`,
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        model: 'gpt-4-vision-preview',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: prompt
+                                    },
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: imageUrl,
+                                            detail: 'high'
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: 1000,
+                        temperature: 0.3
+                    }
                 });
-            }
-        }
 
-        // Atualizar status da carteira
-        function updateWalletStatus(connected, address = '') {
-            const statusIndicator = document.getElementById('wallet-status-indicator');
-            const statusText = document.getElementById('wallet-status-text');
-            
-            if (connected) {
-                statusIndicator.className = 'status-indicator status-connected';
-                statusText.textContent = `Conectado: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-            } else {
-                statusIndicator.className = 'status-indicator status-disconnected';
-                statusText.textContent = 'Carteira não conectada';
-            }
-        }
+                console.log('Enviando requisicao para OpenAI...');
+                const [openaiResponse] = await Promise.all([openaiRequest]);
 
-        // Configurar event listeners
-        function setupEventListeners() {
-            logDebugMessage("Setting up event listeners...");
-            document.getElementById('connect-wallet-btn').addEventListener('click', connectWallet);
-            document.getElementById('upload-btn').addEventListener('click', uploadAndAnalyzeImageWithChainlink);
-            document.getElementById('preview-btn').addEventListener('click', previewAnalysis);
-            document.getElementById('confirm-analysis-btn').addEventListener('click', confirmAndExecuteChainlink);
-            document.getElementById('create-metadata-btn').addEventListener('click', createMetadataAndMint);
-            document.getElementById('toggle-debug').addEventListener('click', toggleDebugInfo);
-            
-            // Listen for changes on the contract address input to re-initialize provider
-            document.getElementById('chainlink-contract-address').addEventListener('change', initializeProvider);
-            logDebugMessage("Event listeners configured.");
-        }
+                console.log('Resposta OpenAI recebida');
+                console.log('Status:', openaiResponse.status);
 
-        // Upload de imagem para IPFS com fallback HTTP/1.1
-        async function uploadToIPFS(file) {
-            logDebugMessage("Starting IPFS upload...");
-            const formData = new FormData();
-            formData.append('file', file);
-
-            // Lista de endpoints para tentar
-            const endpoints = [
-                'https://nft-fuji-minter.onrender.com/upload',
-                'https://nft-fuji-minter.onrender.com/api/upload',
-                'https://nft-fuji-minter.onrender.com/ipfs/upload'
-            ];
-
-            for (const endpoint of endpoints) {
-                try {
-                    logDebugMessage(`Trying endpoint: ${endpoint}`);
-                    
-                    // Primeira tentativa com configuração padrão
-                    let response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`IPFS upload response: ${JSON.stringify(data)}`);
-                        
-                        // Verificar se o hash existe e é válido
-                        const hash = data.IpfsHash || data.ipfs_hash || data.hash || data.ipfsHash;
-                        if (hash && hash.length > 0) {
-                            logDebugMessage(`IPFS upload successful. Hash: ${hash}`);
-                            return hash;
-                        } else {
-                            logDebugMessage(`IPFS upload returned invalid hash: ${hash}`);
-                            throw new Error("Hash IPFS inválido retornado pelo servidor");
-                        }
-                    }
-
-                    // Se falhou, tentar com headers específicos para HTTP/1.1
-                    logDebugMessage(`First attempt failed with status ${response.status}, trying with HTTP/1.1 headers...`);
-                    
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json',
-                            'Connection': 'close',
-                            'Cache-Control': 'no-cache'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`IPFS upload fallback response: ${JSON.stringify(data)}`);
-                        
-                        // Verificar se o hash existe e é válido
-                        const hash = data.IpfsHash || data.ipfs_hash || data.hash || data.ipfsHash;
-                        if (hash && hash.length > 0) {
-                            logDebugMessage(`IPFS upload successful with fallback. Hash: ${hash}`);
-                            return hash;
-                        } else {
-                            logDebugMessage(`IPFS upload fallback returned invalid hash: ${hash}`);
-                            throw new Error("Hash IPFS inválido retornado pelo servidor (fallback)");
-                        }
-                    }
-
-                } catch (error) {
-                    logDebugMessage(`Endpoint ${endpoint} failed: ${error.message}`);
-                    continue;
+                if (openaiResponse.error) {
+                    console.log('Erro na API OpenAI:', openaiResponse.error);
+                    throw Error(\`OpenAI API error: \${openaiResponse.error}\`);
                 }
-            }
 
-            // Se todos os endpoints falharam, tentar o endpoint de análise diretamente
-            logDebugMessage("All upload endpoints failed, trying direct analysis...");
-            throw new Error("Todos os endpoints de upload falharam. Tente usar a pré-visualização.");
-        }
-
-        // Pré-visualização da análise (chamada direta ao backend) com fallback
-        async function previewAnalysis() {
-            logDebugMessage("Starting preview analysis...");
-            const fileInput = document.getElementById('image-upload');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                logDebugMessage("No file selected for preview.");
-                alert('Por favor, selecione uma imagem primeiro.');
-                return;
-            }
-
-            try {
-                showLoading('Fazendo upload da imagem...');
-                
-                // Tentar upload para IPFS primeiro
-                let ipfsHash;
-                try {
-                    ipfsHash = await uploadToIPFS(file);
-                    currentImageHash = ipfsHash;
-                    displayUploadedImage(file, ipfsHash);
-                } catch (uploadError) {
-                    logDebugMessage(`Upload failed: ${uploadError.message}`);
-                    
-                    // Se upload falhou, tentar análise direta com base64
-                    showLoading('Upload falhou, tentando análise direta...');
-                    
-                    const base64 = await fileToBase64(file);
-                    const analysisData = await analyzeImageDirect(base64);
-                    
-                    hideLoading();
-                    displayPreviewAnalysis(analysisData);
-                    
-                    // Mostrar imagem sem IPFS hash
-                    displayUploadedImage(file, 'Análise direta (sem IPFS)');
-                    return;
+                if (!openaiResponse.data || !openaiResponse.data.choices || !openaiResponse.data.choices[0]) {
+                    console.log('Resposta invalida da OpenAI');
+                    throw Error('Invalid OpenAI response structure');
                 }
-                
-                showLoading('Analisando imagem com IA...');
-                
-                // Chamar backend para análise
-                const analysisData = await analyzeImageByHash(ipfsHash);
-                // Armazenar análise para uso posterior (se necessário)
-                window.currentPreviewAnalysis = analysisData;
-                
-                logDebugMessage("Preview analysis completed successfully.");
-                hideLoading();
-                displayPreviewAnalysis(analysisData);
-                
+
+                const analysisText = openaiResponse.data.choices[0].message.content;
+                console.log('Analise recebida:', analysisText.substring(0, 200) + '...');
+
+                // 4. Validar e limpar JSON
+                let analysisJson;
+                try {
+                    const cleanText = analysisText.trim();
+                    const jsonStart = cleanText.indexOf('{');
+                    const jsonEnd = cleanText.lastIndexOf('}') + 1;
+                    const jsonString = cleanText.substring(jsonStart, jsonEnd);
+                    
+                    analysisJson = JSON.parse(jsonString);
+                    console.log('JSON parseado com sucesso');
+                } catch (parseError) {
+                    console.log('Erro ao parsear JSON:', parseError.message);
+                    // Fallback com dados basicos
+                    analysisJson = {
+                        sentiment: 'neutral',
+                        confidence: 0.5,
+                        emotions: ['unknown'],
+                        visual_elements: {
+                            colors: ['mixed'],
+                            style: 'digital_art',
+                            composition: 'balanced'
+                        },
+                        symbolism: 'Analysis pending',
+                        market_appeal: 'medium',
+                        keywords: ['nft', 'digital'],
+                        nft_attributes: [
+                            {trait_type: 'Status', value: 'Analyzed'}
+                        ]
+                    };
+                }
+
+                // 5. Adicionar metadados tecnicos
+                const finalResult = {
+                    ...analysisJson,
+                    metadata: {
+                        ipfs_hash: ipfsHash,
+                        analysis_timestamp: Math.floor(Date.now() / 1000),
+                        model_used: 'gpt-4-vision-preview',
+                        chainlink_request: true
+                    }
+                };
+
+                console.log('Analise completa finalizada');
+                const resultString = JSON.stringify(finalResult);
+                console.log('Resultado final (primeiros 300 chars):', resultString.substring(0, 300));
+
+                return Functions.encodeString(resultString);
+
             } catch (error) {
-                logDebugMessage(`Preview analysis failed: ${error.message}`);
-                console.error('Erro na pré-visualização:', error);
-                alert(`Erro na pré-visualização: ${error.message}`);
-                hideLoading();
+                console.log('ERRO na analise:', error.message);
+                
+                // Retornar erro estruturado
+                const errorResult = {
+                    error: true,
+                    message: error.message,
+                    ipfs_hash: ipfsHash,
+                    timestamp: Math.floor(Date.now() / 1000)
+                };
+                
+                return Functions.encodeString(JSON.stringify(errorResult));
+            }
+        `;
+
+        // Utility functions
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            console.log(logEntry);
+            
+            const debugLogs = document.getElementById('debugLogs');
+            debugLogs.innerHTML += logEntry + '<br>';
+            debugLogs.scrollTop = debugLogs.scrollHeight;
+        }
+
+        function showLoading(text = "Processando...") {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingSpinner').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function toggleDebug() {
+            const debugSection = document.getElementById('debugSection');
+            debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function clearDebugLogs() {
+            document.getElementById('debugLogs').innerHTML = 'Debug logs limpos.';
+        }
+
+        // Initialize wallet and contracts
+        async function initializeProvider() {
+            try {
+                log('Verificando conexao com carteira...');
+                
+                if (typeof window.ethereum !== 'undefined') {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    signer = provider.getSigner();
+                    
+                    const address = await signer.getAddress();
+                    log(`Carteira conectada: ${address}`);
+                    
+                    document.getElementById('walletStatus').textContent = 'Conectada';
+                    document.getElementById('walletStatus').className = 'status-badge status-connected';
+                    document.getElementById('walletAddress').textContent = address;
+                    
+                    // Initialize contracts
+                    chainlinkContract = new ethers.Contract(CHAINLINK_CONTRACT_ADDRESS, chainlinkABI, signer);
+                    nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, nftABI, signer);
+                    
+                    log('Contratos inicializados com sucesso');
+                    return true;
+                } else {
+                    throw new Error('MetaMask nao encontrada');
+                }
+            } catch (error) {
+                log(`Erro ao conectar carteira: ${error.message}`);
+                return false;
             }
         }
 
-        // Converter arquivo para base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
+        // File upload handling
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageInput');
+
+            uploadArea.addEventListener('click', () => imageInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
             });
         }
 
-        // Análise de imagem por hash IPFS
-        async function analyzeImageByHash(ipfsHash) {
-            // Usando apenas o endpoint que funciona
-            const endpoint = 'https://nft-fuji-minter.onrender.com/api/analyze-sentiment-chainlink';
-            
-            try {
-                logDebugMessage(`Trying analysis endpoint: ${endpoint}`);
-                
-                const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            image_hash: ipfsHash
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        logDebugMessage(`Analysis successful via ${endpoint}`);
-                        return data;
-                    } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-
-                } catch (error) {
-                    logDebugMessage(`Analysis endpoint failed: ${error.message}`);
-                    throw new Error(`Endpoint de análise falhou: ${error.message}`);
-                }
-        }
-
-        // Análise direta de imagem (fallback)
-        async function analyzeImageDirect(base64Image) {
-            logDebugMessage("Attempting direct image analysis...");
-            
-            // Simular análise local (placeholder)
-            // Em uma implementação real, isso poderia chamar uma API alternativa
-            return {
-                sentiment_analysis: "Análise de sentimentos não disponível (modo offline)",
-                color_psychology: "Análise de cores não disponível (modo offline)", 
-                symbol_relation: "Análise simbólica não disponível (modo offline)",
-                visual_language: "Análise visual não disponível (modo offline)",
-                keywords: ["imagem", "análise", "offline"],
-                attributes: {"modo": "offline", "status": "fallback"}
-            };
-        }
-
-        // Exibir pré-visualização da análise
-        function displayPreviewAnalysis(data) {
-            logDebugMessage("Displaying preview analysis...");
-            const previewContent = document.getElementById('preview-content');
-            
-            previewContent.innerHTML = `
-                <div class="preview-item">
-                    <h5><i class="fas fa-smile me-2"></i>Análise de Sentimentos</h5>
-                    <p>${data.sentiment_analysis || 'N/A'}</p>
-                </div>
-                <div class="preview-item">
-                    <h5><i class="fas fa-palette me-2"></i>Psicologia das Cores</h5>
-                    <p>${data.color_psychology || 'N/A'}</p>
-                </div>
-                <div class="preview-item">
-                    <h5><i class="fas fa-lightbulb me-2"></i>Relação Simbólica</h5>
-                    <p>${data.symbol_relation || 'N/A'}</p>
-                </div>
-                <div class="preview-item">
-                    <h5><i class="fas fa-eye me-2"></i>Linguagem Visual</h5>
-                    <p>${data.visual_language || 'N/A'}</p>
-                </div>
-                <div class="preview-item">
-                    <h5><i class="fas fa-tags me-2"></i>Palavras-chave</h5>
-                    <p>${Array.isArray(data.keywords) ? data.keywords.join(', ') : (data.keywords || 'N/A')}</p>
-                </div>
-                <div class="preview-item">
-                    <h5><i class="fas fa-info-circle me-2"></i>Atributos</h5>
-                    <p>${Array.isArray(data.attributes) ? JSON.stringify(data.attributes, null, 2) : (data.attributes || 'N/A')}</p>
-                </div>
-            `;
-            
-            document.getElementById('analysis-preview').style.display = 'block';
-            document.getElementById('analysis-preview').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Confirmar e executar via Chainlink Functions
-        async function confirmAndExecuteChainlink() {
-            logDebugMessage("Confirming and executing via Chainlink Functions...");
-            
-            // Validar se temos um hash válido
-            if (!currentImageHash || currentImageHash === 'undefined' || currentImageHash.length === 0) {
-                logDebugMessage(`Invalid currentImageHash: ${currentImageHash}`);
-                alert('Erro: Hash da imagem não encontrado ou inválido. Faça o upload novamente.');
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor, selecione um arquivo de imagem.');
                 return;
             }
 
-            try {
-                await executeChainlinkFunction(currentImageHash);
-            } catch (error) {
-                logDebugMessage(`Chainlink execution failed: ${error.message}`);
-                console.error('Erro na execução Chainlink:', error);
-                alert(`Erro na execução Chainlink: ${error.message}`);
-            }
-        }
-
-        // Executar função Chainlink
-        async function executeChainlinkFunction(ipfsHash) {
-            logDebugMessage("Executing Chainlink Function...");
-            
-            // Validar hash IPFS antes de prosseguir
-            if (!ipfsHash || ipfsHash === 'undefined' || ipfsHash.length === 0) {
-                logDebugMessage(`Invalid IPFS hash provided: ${ipfsHash}`);
-                throw new Error("Hash IPFS inválido. Não é possível executar Chainlink Functions sem um hash válido.");
-            }
-            
-            // Verificar se a carteira está conectada
-            if (!currentProvider || !currentSigner) {
-                logDebugMessage("Provider or Signer not initialized. Attempting to connect wallet.");
-                await connectWallet();
-                if (!currentProvider || !currentSigner) {
-                    throw new Error("Carteira não conectada ou provedor não inicializado.");
-                }
-            }
-
-            // Verificar se o contrato está configurado
-            const contractAddress = document.getElementById('chainlink-contract-address').value;
-            if (!contractAddress || contractAddress.length !== 42 || !contractAddress.startsWith('0x')) {
-                logDebugMessage(`Invalid Chainlink Contract Address: ${contractAddress}`);
-                throw new Error("Endereço do contrato Chainlink Functions inválido.");
-            }
-
-            if (!chainlinkContract) {
-                await initializeProvider();
-                if (!chainlinkContract) {
-                    throw new Error("Contrato Chainlink Functions não inicializado.");
-                }
-            }
-
-            showLoading('Executando via Chainlink Functions...');
-            logDebugMessage(`Calling sendRequest on Chainlink Contract with IPFS Hash: ${ipfsHash}`);
-
-            // Obter configurações de gas
-            const gasLimit = parseInt(document.getElementById('gas-limit').value) || 15000000;
-            const gasPrice = ethers.utils.parseUnits(document.getElementById('gas-price').value || '25', 'gwei');
-            const subscriptionId = parseInt(document.getElementById('subscription-id').value) || 15580;
-            
-            logDebugMessage(`Gas configuration - Limit: ${gasLimit}, Price: ${gasPrice.toString()}, Subscription: ${subscriptionId}`);
-
-            // Argumentos para a requisição Chainlink Functions - validar antes de usar
-            const args = [ipfsHash];
-            logDebugMessage(`Arguments for Chainlink Functions: ${JSON.stringify(args)}`);
-
-            try {
-                logDebugMessage(`Calling sendRequest with simplified parameters:`);
-                logDebugMessage(`- subscriptionId: ${subscriptionId}`);
-                logDebugMessage(`- args: ${JSON.stringify(args)}`);
-
-                // Enviar a requisição para o contrato Chainlink Functions (interface simplificada)
-                const transaction = await chainlinkContract.sendRequest(
-                    subscriptionId,
-                    args,
-                    { 
-                        gasLimit: gasLimit,
-                        gasPrice: gasPrice
-                    }
-                );
-                
-                logDebugMessage(`Transaction sent. Hash: ${transaction.hash}`);
-                showLoading(`Transação enviada: ${transaction.hash}. Aguardando confirmação...`);
-
-                const receipt = await transaction.wait();
-                logDebugMessage(`Transaction confirmed. Block: ${receipt.blockNumber}`);
-                showLoading('Transação confirmada. Aguardando resultados da análise...');
-
-                // O resultado será recebido via evento ou pode ser consultado via s_lastResponse
-
-            } catch (error) {
-                logDebugMessage(`Chainlink Function execution failed: ${error.message}`);
-                throw error;
-            }
-        }
-
-        // Função principal de upload e análise com Chainlink Functions
-        async function uploadAndAnalyzeImageWithChainlink() {
-            logDebugMessage("uploadAndAnalyzeImageWithChainlink called.");
-            const fileInput = document.getElementById('image-upload');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                logDebugMessage("No file selected.");
-                alert('Por favor, selecione uma imagem primeiro.');
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                alert('Arquivo muito grande. Máximo 10MB.');
                 return;
             }
 
-            try {
-                showLoading('Preparando upload...');
-                logDebugMessage("Loading spinner shown.");
-                
-                // Upload para IPFS
-                const ipfsHash = await uploadToIPFS(file);
-                currentImageHash = ipfsHash;
-                
-                // Mostrar imagem carregada
-                displayUploadedImage(file, ipfsHash);
-                
-                // Executar função Chainlink
-                await executeChainlinkFunction(ipfsHash);
-
-            } catch (error) {
-                logDebugMessage(`Análise de sentimentos falhou: ${error.message}`);
-                console.error('Erro na análise:', error);
-                alert(`Erro na análise: ${error.message}. Verifique o console para mais detalhes.`);
-                hideLoading();
-            }
-        }
-
-        // Exibir imagem carregada
-        function displayUploadedImage(file, ipfsHash) {
-            logDebugMessage("Displaying uploaded image...");
+            currentImageFile = file;
+            
+            // Show preview
             const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('uploaded-image').src = e.target.result;
-                document.getElementById('ipfs-hash').textContent = ipfsHash;
-                document.getElementById('image-preview').style.display = 'block';
-                document.getElementById('preview-btn').style.display = 'block';
+            reader.onload = (e) => {
+                const preview = document.getElementById('imagePreview');
+                preview.innerHTML = `<img src="${e.target.result}" class="image-preview" alt="Preview">`;
+                
+                document.getElementById('analyzeBtn').disabled = false;
+                log(`Imagem selecionada: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
             };
             reader.readAsDataURL(file);
         }
 
-        // Função para exibir os resultados da análise
-        function displayAnalysisResults(sentiment, color, symbol, visual, keywords, attributes) {
-            logDebugMessage("Displaying analysis results...");
-            document.getElementById('sentiment-result').innerHTML = `<h4><i class="fas fa-smile me-2"></i>Análise de Sentimentos:</h4><p>${sentiment}</p>`;
-            document.getElementById('color-result').innerHTML = `<h4><i class="fas fa-palette me-2"></i>Psicologia das Cores:</h4><p>${color}</p>`;
-            document.getElementById('symbol-result').innerHTML = `<h4><i class="fas fa-lightbulb me-2"></i>Relação Simbólica:</h4><p>${symbol}</p>`;
-            document.getElementById('visual-result').innerHTML = `<h4><i class="fas fa-eye me-2"></i>Linguagem Visual:</h4><p>${visual}</p>`;
-            document.getElementById('keywords-result').innerHTML = `<h4><i class="fas fa-tags me-2"></i>Palavras-chave:</h4><p>${keywords}</p>`;
-            document.getElementById('attributes-result').innerHTML = `<h4><i class="fas fa-info-circle me-2"></i>Atributos:</h4><p>${attributes}</p>`;
-            document.getElementById('analysis-results').style.display = 'block';
-            document.getElementById('analysis-preview').style.display = 'none';
-            logDebugMessage("Analysis results displayed.");
+        // Upload to IPFS
+        async function uploadToIPFS(file) {
+            const endpoints = [
+                'https://nft-fuji-minter.onrender.com/upload',
+                'https://nft-fuji-minter.onrender.com/api/upload'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    log(`Tentando endpoint: ${endpoint}`);
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    log(`Upload IPFS bem-sucedido: ${data.IpfsHash}`);
+                    
+                    return data.IpfsHash;
+                } catch (error) {
+                    log(`Endpoint ${endpoint} falhou: ${error.message}`);
+                }
+            }
+            
+            throw new Error('Todos os endpoints de upload falharam');
         }
 
-        // Função para criar metadados e mintar NFT
-        async function createMetadataAndMint() {
-            logDebugMessage("createMetadataAndMint called.");
-            alert('Funcionalidade de criação de metadados e mintagem de NFT será implementada em breve.');
+        // Main analysis function
+        async function uploadAndAnalyzeImageWithChainlink() {
+            if (!currentImageFile) {
+                alert('Selecione uma imagem primeiro');
+                return;
+            }
+
+            if (!chainlinkContract) {
+                alert('Conecte sua carteira primeiro');
+                return;
+            }
+
+            try {
+                showLoading('Fazendo upload para IPFS...');
+                log('Iniciando upload para IPFS...');
+
+                // Upload to IPFS
+                currentIPFSHash = await uploadToIPFS(currentImageFile);
+                
+                document.getElementById('ipfsInfo').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Upload IPFS concluído!</strong><br>
+                        Hash: <code>${currentIPFSHash}</code>
+                    </div>
+                `;
+
+                showLoading('Executando análise via Chainlink Functions...');
+                log('Executando Chainlink Function...');
+
+                // Prepare Chainlink Functions request
+                const secretsLocation = 1; // DONHosted
+                const encryptedSecretsReference = "0x"; // Empty for DON hosted secrets
+                const args = [currentIPFSHash];
+                const bytesArgs = [];
+                const callbackGasLimit = 300000;
+
+                log(`Chamando sendRequest com IPFS Hash: ${currentIPFSHash}`);
+
+                // Send request to Chainlink Functions
+                const tx = await chainlinkContract.sendRequest(
+                    chainlinkSource,
+                    secretsLocation,
+                    encryptedSecretsReference,
+                    args,
+                    bytesArgs,
+                    SUBSCRIPTION_ID,
+                    callbackGasLimit,
+                    {
+                        gasLimit: 15000000,
+                        gasPrice: 25000000000
+                    }
+                );
+
+                log(`Transação enviada: ${tx.hash}`);
+                showLoading(`Transação enviada: ${tx.hash}. Aguardando confirmação...`);
+
+                const receipt = await tx.wait();
+                log(`Transação confirmada. Bloco: ${receipt.blockNumber}`);
+                
+                showLoading('Transação confirmada. Aguardando resultados da análise...');
+
+                // Poll for results
+                pollForResults();
+
+            } catch (error) {
+                log(`Erro na análise: ${error.message}`);
+                hideLoading();
+                alert(`Erro: ${error.message}`);
+            }
         }
 
-        // Funções de UI
-        function showLoading(message) {
-            document.getElementById('loading-spinner').style.display = 'block';
-            document.getElementById('loading-text').textContent = message;
-            logDebugMessage(`Loading: ${message}`);
+        // Poll for Chainlink Functions results
+        async function pollForResults() {
+            const maxAttempts = 60; // 5 minutes
+            let attempts = 0;
+
+            const pollInterval = setInterval(async () => {
+                attempts++;
+                
+                try {
+                    const response = await chainlinkContract.s_lastResponse();
+                    const error = await chainlinkContract.s_lastError();
+                    
+                    if (response && response !== '0x') {
+                        clearInterval(pollInterval);
+                        hideLoading();
+                        
+                        try {
+                            const responseString = ethers.utils.toUtf8String(response);
+                            const analysisData = JSON.parse(responseString);
+                            
+                            log('Análise recebida com sucesso!');
+                            displayAnalysisResults(analysisData);
+                            
+                        } catch (parseError) {
+                            log(`Erro ao parsear resposta: ${parseError.message}`);
+                            document.getElementById('resultsSection').style.display = 'block';
+                            document.getElementById('analysisResults').innerHTML = `
+                                <div class="alert alert-warning">
+                                    <h6>Resposta recebida (formato bruto):</h6>
+                                    <pre>${ethers.utils.toUtf8String(response)}</pre>
+                                </div>
+                            `;
+                        }
+                    } else if (error && error !== '0x') {
+                        clearInterval(pollInterval);
+                        hideLoading();
+                        
+                        const errorString = ethers.utils.toUtf8String(error);
+                        log(`Erro na execução: ${errorString}`);
+                        alert(`Erro na análise: ${errorString}`);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(pollInterval);
+                        hideLoading();
+                        log('Timeout aguardando resultados');
+                        alert('Timeout aguardando resultados. Tente novamente.');
+                    }
+                    
+                } catch (error) {
+                    log(`Erro ao verificar resultados: ${error.message}`);
+                }
+            }, 5000); // Check every 5 seconds
         }
 
-        function hideLoading() {
-            document.getElementById('loading-spinner').style.display = 'none';
-            logDebugMessage("Loading hidden.");
+        // Display analysis results
+        function displayAnalysisResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const analysisResults = document.getElementById('analysisResults');
+            
+            if (data.error) {
+                analysisResults.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>Erro na Análise:</h6>
+                        <p>${data.message}</p>
+                    </div>
+                `;
+            } else {
+                analysisResults.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="analysis-result">
+                                <h6><i class="fas fa-heart"></i> Sentimento</h6>
+                                <p><strong>${data.sentiment}</strong> (${(data.confidence * 100).toFixed(1)}% confiança)</p>
+                                <p><strong>Emoções:</strong> ${data.emotions.join(', ')}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="analysis-result">
+                                <h6><i class="fas fa-palette"></i> Elementos Visuais</h6>
+                                <p><strong>Cores:</strong> ${data.visual_elements.colors.join(', ')}</p>
+                                <p><strong>Estilo:</strong> ${data.visual_elements.style}</p>
+                                <p><strong>Composição:</strong> ${data.visual_elements.composition}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="analysis-result">
+                                <h6><i class="fas fa-chart-line"></i> Apelo de Mercado</h6>
+                                <p><strong>${data.market_appeal}</strong></p>
+                                <p><strong>Palavras-chave:</strong> ${data.keywords.join(', ')}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="analysis-result">
+                                <h6><i class="fas fa-gem"></i> Atributos NFT</h6>
+                                ${data.nft_attributes.map(attr => 
+                                    `<span class="badge bg-primary me-1">${attr.trait_type}: ${attr.value}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="analysis-result">
+                                <h6><i class="fas fa-eye"></i> Simbolismo</h6>
+                                <p>${data.symbolism}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <button class="btn btn-custom" onclick="mintNFTWithAnalysis()">
+                            <i class="fas fa-coins"></i> Criar NFT com Análise
+                        </button>
+                    </div>
+                `;
+            }
+            
+            resultsSection.style.display = 'block';
         }
 
-        function toggleDebugInfo() {
-            const debugInfo = document.getElementById('debug-info');
-            debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-            logDebugMessage(`Debug info visibility toggled to: ${debugInfo.style.display}`);
+        // Mint NFT with analysis data
+        async function mintNFTWithAnalysis() {
+            // Implementation for minting NFT with sentiment data
+            alert('Funcionalidade de mint será implementada em breve!');
         }
 
-        // Inicialização quando o DOM estiver carregado
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            logDebugMessage("DOM Content Loaded. Initializing...");
-            setupEventListeners();
-            checkWalletConnection();
+            log('DOM Content Loaded. Inicializando...');
+            
+            setupFileUpload();
+            
+            // Auto-initialize if MetaMask is available
+            if (typeof window.ethereum !== 'undefined') {
+                initializeProvider();
+            } else {
+                log('MetaMask não detectado');
+            }
         });
     </script>
 </body>
