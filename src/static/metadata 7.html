@@ -509,7 +509,7 @@
             throw new Error('Todos os endpoints de upload falharam');
         }
 
-        // Main analysis function - CORRIGIDO PARA NÃO ENVIAR JAVASCRIPT SOURCE
+        // Main analysis function - SIMPLIFICADO PARA USAR O JAVASCRIPT DO CONTRATO
         async function uploadAndAnalyzeImageWithChainlink() {
             if (!currentImageFile) {
                 alert('Selecione uma imagem primeiro');
@@ -538,10 +538,83 @@
                 showLoading('Executando análise via Chainlink Functions...');
                 log('Executando Chainlink Function...');
 
-                // O CONTRATO JÁ TEM O JAVASCRIPT DEPLOYADO!
-                // NÃO PRECISAMOS ENVIAR SOURCE CODE, APENAS OS ARGUMENTOS
-                
-                // Prepare Chainlink Functions request - SEM JAVASCRIPT SOURCE
+                // USAR O JAVASCRIPT QUE JÁ ESTÁ NO CONTRATO
+                // O contrato 0xa866557B00672D6659bD8AF5d09BbC30B1c2fBBE já tem o JavaScript deployado
+                const javascriptSource = `
+                    // Este é o JavaScript que está no contrato
+                    require('dotenv-vault').config();
+                    const axios = require("axios");
+                    
+                    const openaiKey = process.env.OPENAI_KEY;
+                    const imageHash = args[0] || 'SEU_HASH_IPFS_EXEMPLO';
+                    
+                    if (!openaiKey) {
+                      throw Error('OPENAI_KEY not found!');
+                    }
+                    
+                    console.log('Analyzing image with hash:', imageHash);
+                    
+                    const prompt = \`Analyze the sentiment and visual characteristics of an NFT image with IPFS hash: \${imageHash}.
+                    Provide a detailed analysis in the following JSON format:
+                    {
+                    "sentiment_analysis": "detailed emotional analysis of the image",
+                    "color_psychology": "analysis of colors and their psychological impact",
+                    "symbol_relation": "symbolic meaning and cultural references",
+                    "visual_language": "description of visual elements and composition",
+                    "keywords": ["keyword1", "keyword2", "keyword3"],
+                    "attributes": [{"trait_type": "Emotion", "value": "Joy"}, {"trait_type": "Style", "value": "Abstract"}]
+                    }
+                    Respond only with valid JSON.\`;
+                    
+                    async function analyzeImage() {
+                      try {
+                        const response = await axios.post(
+                          'https://api.openai.com/v1/chat/completions',
+                          {
+                            model: 'gpt-3.5-turbo',
+                            messages: [
+                              {
+                                role: 'system',
+                                content: 'You are an expert NFT and art analyst. Analyze images and provide detailed sentiment analysis in JSON format.'
+                              },
+                              {
+                                role: 'user',
+                                content: prompt
+                              }
+                            ],
+                            max_tokens: 1000,
+                            temperature: 0.7
+                          },
+                          {
+                            headers: {
+                              'Authorization': \`Bearer \${openaiKey}\`,
+                              'Content-Type': 'application/json'
+                            }
+                          }
+                        );
+                    
+                        if (!response.data || !response.data.choices || !response.data.choices[0]) {
+                          throw Error('Invalid response from OpenAI API');
+                        }
+                        const result = response.data.choices[0].message.content;
+                    
+                        console.log('OpenAI result:', result);
+                        return result;
+                    
+                      } catch (error) {
+                        if (error.response) {
+                          console.error('OpenAI API error:', error.response.data);
+                        } else {
+                          console.error('Error:', error.message);
+                        }
+                        throw error;
+                      }
+                    }
+                    
+                    return analyzeImage();
+                `;
+
+                // Prepare Chainlink Functions request
                 const secretsLocation = 1; // DONHosted
                 const encryptedSecretsReference = "0x"; // Empty for DON hosted secrets
                 const args = [currentIPFSHash];
@@ -550,13 +623,12 @@
 
                 log(`Chamando sendRequest com IPFS Hash: ${currentIPFSHash}`);
                 log(`Usando contrato: ${CHAINLINK_CONTRACT_ADDRESS}`);
-                log(`IMPORTANTE: Usando JavaScript já deployado no contrato`);
                 log(`Secrets location: ${secretsLocation}`);
                 log(`Callback gas limit: ${callbackGasLimit}`);
 
-                // Send request to Chainlink Functions - SEM SOURCE CODE
+                // Send request to Chainlink Functions
                 const tx = await chainlinkContract.sendRequest(
-                    "", // JAVASCRIPT SOURCE VAZIO - O CONTRATO JÁ TEM O CÓDIGO
+                    javascriptSource,
                     secretsLocation,
                     encryptedSecretsReference,
                     args,
@@ -564,7 +636,7 @@
                     SUBSCRIPTION_ID,
                     callbackGasLimit,
                     {
-                        gasLimit: 5000000, // Reduzido
+                        gasLimit: 15000000,
                         gasPrice: 25000000000
                     }
                 );
